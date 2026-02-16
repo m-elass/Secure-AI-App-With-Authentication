@@ -1,0 +1,17 @@
+# Archivos de sistema y PyCharm
+.idea/
+.DS_Store
+
+# Python (Backend)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.env
+
+# Node.js (Frontend)
+node_modules/
+dist/
+build/
+.env.local
