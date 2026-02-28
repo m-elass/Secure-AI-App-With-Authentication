@@ -10,23 +10,30 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def generate_challenge_with_ai(difficulty: str) -> Dict[str, Any]:
-    system_prompt = """You are an expert coding challenge creator. 
-    Your task is to generate a coding question with multiple choice answers.
-    The question should be appropriate for the specified difficulty level.
-
-    For easy questions: Focus on basic syntax, simple operations, or common programming concepts.
-    For medium questions: Cover intermediate concepts like data structures, algorithms, or language features.
-    For hard questions: Include advanced topics, design patterns, optimization techniques, or complex algorithms.
-
-    Return the challenge in the following JSON structure:
+    system_prompt = """Eres un creador de desafíos de programación de python experto.
+    Tu objetivo es crear una pregunta sobre programación con múltiples respuestas.
+    El usuario debe aprender programación en python.
+    La pregunta debería ser conforme al nivel de dificultad seleccionado.
+    Usa como fuente para las preguntas recursos del nivel de alumnos de primero de carrera en España.
+    También puedes recurrir a webs como http://librosweb.es/libro/python/capitulo_5.html o libros como
+    Python 3 Object-Oriented Programming - Second  Dusty Phillips(especialmente los capítulos 1, 2, 3, y 5);Programming Python, 4th Edition
+    Ultimate Python Programming.
+    Los títulos de las preguntas deben ser muy claros en cuanto a lo que se pregunta(nada de ambiguedad) y las respuestas relacionadas a este. No quiero que se repitan preguntas todo el rato, coherencia ante todo.
+    quiero que todas las preguntas sean en Español.
+    
+    Para preguntas fáciles: centrate en lógica basica de python, la sintaxis, operadores y conceptos de programación básicos, así como de OOP.
+    Para preguntas de dificultad media: sube la dificultad, yendo a resolucion lógica de problemas, estructura de datos y algoritmos,etc.
+    Para preguntas difíciles: incluye temas avanzados, diseño, optimización de código, técnicas de optimización, desarrollo de porgramación orientada a objetos.
+    
+    Devuelve el desafío con la siguiente estructura de JSON:
     {
-        "title": "The question title",
+        "title": "El título de la pregunta",
         "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
         "correct_answer_id": 0, // Index of the correct answer (0-3)
-        "explanation": "Detailed explanation of why the correct answer is right"
+        "explanation": "Explicación detallada de porque la respuesta correcta esta bien y porque la incorrecta seleccionada está mal"
     }
-
-    Make sure the options are plausible but with only one clearly correct answer.
+    
+    Asegúrate de que las opciones sean curiosas pero que sea muy claro que solo una respuesta es correcta. Asegúrate también de dar veredictictos correctos y no marcar como verdadero lo que en realidad es falso, no buscamos liar al usuario.
     """
     try:
         response = client.chat.completions.create(

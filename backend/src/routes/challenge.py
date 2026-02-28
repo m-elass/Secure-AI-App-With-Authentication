@@ -77,7 +77,7 @@ async def my_history(request: Request, db: Session = Depends(get_db)):
     challenges = get_user_challenges(db, user_id)
     return {"challenges": challenges}
 
-
+'''
 @router.get("/quota")
 async def get_quota(request: Request, db: Session = Depends(get_db)):
     user_details = authenticate_and_get_user_details(request)
@@ -90,6 +90,22 @@ async def get_quota(request: Request, db: Session = Depends(get_db)):
             "quota_remaining": 0,
             "last_reset_date": datetime.now()
         }
+
+    quota = reset_quota_if_needed(db, quota)
+    return quota
+
+''' 
+
+@router.get("/quota")
+async def get_quota(request: Request, db: Session = Depends(get_db)):
+    user_details = authenticate_and_get_user_details(request)
+    user_id = user_details.get("user_id")
+
+    quota = get_challenge_quota(db, user_id)
+
+    # NUEVO: Si no existe, la creamos en lugar de devolver 0
+    if not quota:
+        quota = create_challenge_quota(db, user_id)
 
     quota = reset_quota_if_needed(db, quota)
     return quota
