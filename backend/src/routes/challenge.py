@@ -68,12 +68,12 @@ async def generate_challenge(
             )
 
         # Cuota
-        quota = get_challenge_quota(db, user_id)
-        if not quota:
-            quota = create_challenge_quota(db, user_id)
-        quota = reset_quota_if_needed(db, quota)
-        if quota.quota_remaining <= 0:
-            raise HTTPException(status_code=429, detail="Quota exhausted")
+        #quota = get_challenge_quota(db, user_id)
+        #if not quota:
+        #    quota = create_challenge_quota(db, user_id)
+        #quota = reset_quota_if_needed(db, quota)
+        #if quota.quota_remaining <= 0:
+        #    raise HTTPException(status_code=429, detail="Quota exhausted")
 
         # Generar
         challenge_data = generate_challenge_with_ai(difficulty, subject=subject)
@@ -90,8 +90,8 @@ async def generate_challenge(
             explanation=challenge_data["explanation"],
         )
 
-        quota.quota_remaining -= 1
-        db.commit()
+        #quota.quota_remaining -= 1
+        #db.commit()
 
         return {
             "id": new_challenge.id,
