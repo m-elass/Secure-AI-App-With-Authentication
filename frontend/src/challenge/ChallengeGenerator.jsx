@@ -112,8 +112,8 @@ export function ChallengeGenerator() {
         return resetDate
     }
 
-    const remaining = quota?.quota_remaining ?? 0
-    const noQuota = remaining === 0
+    const remaining = Infinity
+    const noQuota = false
     const descriptions = DIFFICULTY_DESCRIPTIONS[activeSubject] || DIFFICULTY_DESCRIPTIONS.per
 
     return (
@@ -128,17 +128,9 @@ export function ChallengeGenerator() {
             <div className="quota-display">
                 <div className="quota-icon" aria-hidden="true">⚡</div>
                 <div className="quota-info">
-                    <div className="quota-label">Preguntas restantes hoy</div>
-                    <div className="quota-value">{remaining}</div>
+                    <div className="quota-label">Modo desarrollo</div>
+                    <div className="quota-value">Sin límite</div>
                 </div>
-                {noQuota && getNextResetTime() && (
-                    <div className="quota-reset">
-                        Próximo reset:<br/>
-                        <strong>{getNextResetTime().toLocaleString("es-ES", {
-                            hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short"
-                        })}</strong>
-                    </div>
-                )}
             </div>
 
             <div className="difficulty-selector">
