@@ -12,6 +12,10 @@ class Challenge(Base):
 
     id = Column(Integer, primary_key=True)
     difficulty = Column(String, nullable=False)
+    # subject distingue PER ("per") de Bioquímica ("biochem"), etc.
+    # Las preguntas creadas antes de añadir esta columna se considerarán "per"
+    # (es el valor por defecto en la migración para no romper compatibilidad).
+    subject = Column(String, nullable=False, default="per", index=True)
     date_created = Column(DateTime, default=datetime.now)
     created_by = Column(String, nullable=False)
     title = Column(String, nullable=False)
@@ -32,6 +36,7 @@ class ChallengeQuota(Base):
 Base.metadata.create_all(engine)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 
 def get_db():
     db = SessionLocal()

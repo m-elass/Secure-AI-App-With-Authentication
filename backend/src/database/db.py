@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
+from typing import Optional
+
 from . import models
 
 
@@ -19,8 +21,8 @@ def create_challenge_quota(db: Session, user_id: str):
 
 def reset_quota_if_needed(db: Session, quota: models.ChallengeQuota):
     now = datetime.now()
-    if now - quota.last_reset_date > timedelta(hours=0):
-        quota.quota_remaining = 300
+    if now - quota.last_reset_date > timedelta(hours=24):
+        quota.quota_remaining = 20
         quota.last_reset_date = now
         db.commit()
         db.refresh(quota)
@@ -30,19 +32,21 @@ def reset_quota_if_needed(db: Session, quota: models.ChallengeQuota):
 def create_challenge(
     db: Session,
     difficulty: str,
+    subject: str,
     created_by: str,
     title: str,
     options: str,
     correct_answer_id: int,
-    explanation: str
+    explanation: str,
 ):
     db_challenge = models.Challenge(
         difficulty=difficulty,
+        subject=subject,
         created_by=created_by,
         title=title,
         options=options,
         correct_answer_id=correct_answer_id,
-        explanation=explanation
+        explanation=explanation,
     )
     db.add(db_challenge)
     db.commit()
@@ -50,5 +54,12 @@ def create_challenge(
     return db_challenge
 
 
-def get_user_challenges(db: Session, user_id: str):
-    return db.query(models.Challenge).filter(models.Challenge.created_by == user_id).all()
+def get_user_challenges(db: Session, user_id: str, subject: Optional[str] = None):
+    """Devuelve el historial de challenges de un usuario.
+
+    Si se pasa `subject`, filtra solo por esa asignatura. Si no, devuelve todo.
+    """
+    q = db.query(models.Challenge).filter(models.Challenge.created_by == user_id)
+    if subject:
+        q = q.filter(models.Challenge.subject == subject)
+    return q.order_by(models.Challenge.date_created.desc()).all()

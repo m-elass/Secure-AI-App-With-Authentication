@@ -1,23 +1,17 @@
 import "react"
 import {useState} from "react"
 
-// Letras A, B, C, D para los círculos a la izquierda de cada opción
 const LETTERS = ["A", "B", "C", "D"]
 
-/**
- * Heurística para detectar bloques de código en el enunciado:
- * si una línea contiene tokens propios de Python (def, class, import,
- * self., =, (...), etc.) y va seguida de más líneas en la misma vena,
- * la agrupamos como bloque <pre>.
- *
- * Devuelve un array de nodos React: strings o bloques <pre>.
- */
+const SUBJECT_LABELS = {
+    per: "PER",
+    biochem: "Bioquímica",
+}
+
 function renderTitleWithCode(title) {
     if (!title || typeof title !== "string") return title
-
     const lines = title.split("\n")
     const codeRegex = /^(\s*)(class |def |import |from |if |else|elif |for |while |return |print\(|self\.|[a-zA-Z_]\w*\s*=\s*|@)/
-    const inlineCodeRegex = /[{}\[\]()]|->/
 
     const nodes = []
     let buffer = []
@@ -26,16 +20,12 @@ function renderTitleWithCode(title) {
 
     const flushText = () => {
         if (buffer.length > 0) {
-            nodes.push(
-                <span key={`t-${nodes.length}`}>{buffer.join("\n")}{"\n"}</span>
-            )
+            nodes.push(<span key={`t-${nodes.length}`}>{buffer.join("\n")}{"\n"}</span>)
             buffer = []
         }
     }
-
     const flushCode = () => {
         if (codeBuffer.length > 0) {
-            // Quitamos líneas vacías al final del bloque
             while (codeBuffer.length > 0 && codeBuffer[codeBuffer.length - 1].trim() === "") {
                 codeBuffer.pop()
             }
@@ -54,21 +44,13 @@ function renderTitleWithCode(title) {
         const line = lines[i]
         const trimmed = line.trim()
         const isCodeLine = codeRegex.test(line) ||
-            (trimmed !== "" && line.startsWith("    ")) ||
-            (trimmed !== "" && line.startsWith("\t"))
+            (trimmed !== "" && (line.startsWith("    ") || line.startsWith("\t")))
 
         if (isCodeLine) {
-            // Cambio: salgo de modo texto y entro en modo código
-            if (!inCode) {
-                flushText()
-                inCode = true
-            }
+            if (!inCode) { flushText(); inCode = true }
             codeBuffer.push(line)
         } else {
-            // Línea no-código
             if (inCode) {
-                // Si es línea vacía DENTRO de un bloque de código, la conservamos
-                // siempre que la siguiente línea sea código (espacio interno).
                 if (trimmed === "" && i + 1 < lines.length && codeRegex.test(lines[i + 1])) {
                     codeBuffer.push(line)
                     continue
@@ -79,17 +61,11 @@ function renderTitleWithCode(title) {
             buffer.push(line)
         }
     }
-
     flushText()
     flushCode()
-
     return nodes
 }
 
-/**
- * Pinta partes del texto entre backticks como <code> y partes con saltos
- * de línea como párrafos. Para títulos sin código de varias líneas.
- */
 function renderInlineMarkdown(text) {
     if (!text) return text
     const parts = text.split(/(`[^`]+`)/g)
@@ -125,8 +101,8 @@ export function MCQChallenge({challenge, showExplanation = false}) {
 
     const difficulty = (challenge.difficulty || "easy").toLowerCase()
     const diffLabel = difficulty === "easy"
-        ? "Fácil"
-        : difficulty === "medium" ? "Medio" : "Difícil"
+        ? "Fácil" : difficulty === "medium" ? "Medio" : "Difícil"
+    const subjectLabel = SUBJECT_LABELS[challenge.subject] || challenge.subject
 
     const renderedTitle = renderTitleWithCode(challenge.title)
     const hasCode = renderedTitle && renderedTitle.some(
@@ -140,6 +116,14 @@ export function MCQChallenge({challenge, showExplanation = false}) {
                     <span className="dot" aria-hidden="true"></span>
                     {diffLabel}
                 </span>
+                {challenge.subject && (
+                    <span
+                        className="subject-badge"
+                        data-subject={challenge.subject}
+                    >
+                        {subjectLabel}
+                    </span>
+                )}
                 {challenge.timestamp && (
                     <span className="challenge-timestamp">
                         {new Date(challenge.timestamp).toLocaleString("es-ES", {
@@ -170,9 +154,7 @@ export function MCQChallenge({challenge, showExplanation = false}) {
                         }}
                     >
                         <div className="option-letter">{LETTERS[index]}</div>
-                        <div className="option-text">
-                            {renderInlineMarkdown(option)}
-                        </div>
+                        <div className="option-text">{renderInlineMarkdown(option)}</div>
                     </div>
                 ))}
             </div>

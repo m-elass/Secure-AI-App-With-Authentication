@@ -12,8 +12,7 @@ export function AuthenticationPage() {
                 <div className="auth-brand-logo" aria-hidden="true">P</div>
                 <h1>PER Quiz</h1>
                 <p>
-                    Preguntas tipo test al estilo del examen real de Programación en Entornos de Red.
-                    Genera, responde y aprende.
+                    Preguntas tipo test al estilo del examen real. Genera, responde y aprende.
                 </p>
             </div>
 
