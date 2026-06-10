@@ -3,9 +3,7 @@
    Tema: claro luminoso · acentos por asignatura · estética moderna
    ============================================================================ */
 
-/* ──────── Variables base (paleta clara) ──────── */
 :root {
-  /* Fondos */
   --bg-base:   #fafafe;
   --bg-soft:   #f4f4fb;
   --bg-card:   #ffffff;
@@ -13,18 +11,15 @@
   --bg-elev-2: #eef0f8;
   --bg-elev-3: #e3e6f3;
 
-  /* Bordes */
   --border-subtle: rgba(20, 18, 60, 0.06);
   --border-soft:   rgba(20, 18, 60, 0.10);
   --border-strong: rgba(20, 18, 60, 0.16);
 
-  /* Texto */
   --text-primary:   #15132e;
   --text-secondary: #5a577a;
   --text-muted:     #9694b0;
 
-  /* Acentos por defecto (PER — violeta). El SubjectContext cambia
-     data-accent del <body> y reasigna estos tokens más abajo. */
+  /* Acentos por defecto (PER — violeta). data-accent del body los cambia. */
   --accent:        #7c3aed;
   --accent-strong: #6d28d9;
   --accent-soft:   #ede9fe;
@@ -32,12 +27,10 @@
   --accent-glow:   rgba(124, 58, 237, 0.25);
   --accent-2:      #06b6d4;
 
-  /* Aura de fondo (gradiente decorativo que tiñe la página) */
   --aura-1: rgba(124, 58, 237, 0.18);
   --aura-2: rgba(6, 182, 212, 0.10);
   --aura-3: rgba(244, 114, 182, 0.08);
 
-  /* Estados */
   --color-success:        #10b981;
   --color-success-bg:     #ecfdf5;
   --color-success-border: #6ee7b7;
@@ -46,37 +39,30 @@
   --color-error-bg:       #fef2f2;
   --color-error-border:   #fca5a5;
 
-  /* Dificultades */
   --diff-easy:   #10b981;
   --diff-medium: #f59e0b;
   --diff-hard:   #ef4444;
 
-  /* Tipografía */
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
 
-  /* Radios */
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 22px;
   --radius-xl: 32px;
 
-  /* Sombras (clave del look "soft" tipo Stripe / Linear claro) */
   --shadow-sm:    0 1px 2px rgba(20, 18, 60, 0.04), 0 1px 3px rgba(20, 18, 60, 0.06);
   --shadow-md:    0 4px 12px rgba(20, 18, 60, 0.06), 0 2px 4px rgba(20, 18, 60, 0.04);
   --shadow-lg:    0 20px 50px -20px rgba(20, 18, 60, 0.18), 0 8px 16px -8px rgba(20, 18, 60, 0.08);
   --shadow-card:  0 1px 3px rgba(20, 18, 60, 0.05), 0 12px 32px -12px rgba(20, 18, 60, 0.08);
   --shadow-glow:  0 12px 32px -8px var(--accent-glow);
 
-  /* Animaciones */
   --t-fast:   140ms cubic-bezier(0.4, 0, 0.2, 1);
   --t-base:   240ms cubic-bezier(0.4, 0, 0.2, 1);
   --t-slow:   400ms cubic-bezier(0.4, 0, 0.2, 1);
   --t-spring: 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* ──────── Branding adaptativo por asignatura ──────── */
-/* PER → violeta (por defecto) */
 body[data-accent="violet"] {
   --accent:        #7c3aed;
   --accent-strong: #6d28d9;
@@ -89,7 +75,6 @@ body[data-accent="violet"] {
   --aura-3:        rgba(244, 114, 182, 0.06);
 }
 
-/* Bioquímica → verde esmeralda */
 body[data-accent="emerald"] {
   --accent:        #059669;
   --accent-strong: #047857;
@@ -102,15 +87,9 @@ body[data-accent="emerald"] {
   --aura-3:        rgba(132, 204, 22, 0.08);
 }
 
-/* ──────── Reset ──────── */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-html,
-body {
+html, body {
   background: var(--bg-base);
   color: var(--text-primary);
   font-family: var(--font-sans);
@@ -118,7 +97,6 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: "ss01", "cv02", "cv11";
 }
 
 body {
@@ -133,7 +111,6 @@ body {
   transition: background var(--t-slow);
 }
 
-/* Patrón de puntos sutil — solo decorativo */
 body::before {
   content: "";
   position: fixed;
@@ -145,10 +122,7 @@ body::before {
   z-index: 0;
 }
 
-/* ============================================================================
-   LAYOUT
-   ============================================================================ */
-
+/* ──────── Layout ──────── */
 .app-layout {
   min-height: 100vh;
   display: flex;
@@ -157,7 +131,6 @@ body::before {
   z-index: 1;
 }
 
-/* ──────── Header (sticky, blanco translúcido) ──────── */
 .app-header {
   position: sticky;
   top: 0;
@@ -238,7 +211,7 @@ body::before {
   margin-top: 2px;
 }
 
-/* ──────── Selector de asignatura (tabs en el header) ──────── */
+/* ──────── Tabs de asignatura ──────── */
 .subject-switch {
   display: inline-flex;
   background: var(--bg-elev-2);
@@ -303,7 +276,6 @@ body::before {
   padding: 0.5rem 0.9rem;
   border-radius: var(--radius-sm);
   transition: all var(--t-fast);
-  position: relative;
 }
 
 .header-content nav a:hover {
@@ -331,10 +303,7 @@ body::before {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ============================================================================
-   GENERADOR DE PREGUNTAS
-   ============================================================================ */
-
+/* ──────── Challenge container ──────── */
 .challenge-container {
   padding: 2.5rem;
   background: var(--bg-card);
@@ -345,7 +314,6 @@ body::before {
   overflow: hidden;
 }
 
-/* Decoración de la esquina superior */
 .challenge-container::before {
   content: "";
   position: absolute;
@@ -383,63 +351,89 @@ body::before {
   font-weight: 600;
 }
 
-/* ──────── Quota card ──────── */
-.quota-display {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.1rem 1.3rem;
-  background: var(--accent-tint);
-  border: 1px solid var(--accent-soft);
-  border-radius: var(--radius-md);
-  margin-bottom: 1.75rem;
+/* ──────── SUB-SELECTOR DE ÁREA (nuevo) ──────── */
+/*
+  Aparece solo cuando la asignatura activa tiene sub-áreas (ej. Bioquímica).
+  Estilo: tarjetas alineadas horizontalmente, parecidas a las pills de
+  dificultad pero más sutiles y con la marca de la asignatura activa.
+*/
+.area-selector {
+  margin-bottom: 1.5rem;
   position: relative;
   z-index: 1;
-  transition: background var(--t-slow), border-color var(--t-slow);
 }
 
-.quota-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+.area-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.area-tab {
+  position: relative;
+  padding: 0.95rem 1.1rem;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
-  flex-shrink: 0;
-  color: white;
-  box-shadow: 0 4px 12px -2px var(--accent-glow);
+  flex-direction: column;
+  gap: 0.25rem;
+  transition: all var(--t-base);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
-.quota-info { flex: 1; }
-
-.quota-label {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 600;
+.area-tab::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--accent) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity var(--t-base);
+  pointer-events: none;
 }
 
-.quota-value {
-  font-size: 1.4rem;
-  font-weight: 700;
+.area-tab:hover:not(:disabled) {
+  border-color: var(--accent);
+  transform: translateY(-2px);
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  box-shadow: var(--shadow-md);
 }
 
-.quota-reset {
-  font-size: 0.8rem;
+.area-tab.active {
+  border-color: var(--accent);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 1px var(--accent), 0 10px 24px -10px var(--accent-glow);
+}
+
+.area-tab.active::before { opacity: 0.06; }
+
+.area-tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.area-tab-name {
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.area-tab-desc {
+  font-size: 0.78rem;
   color: var(--text-muted);
-  text-align: right;
+  font-weight: 400;
+  line-height: 1.35;
 }
 
-.quota-reset strong { color: var(--text-secondary); }
-
-/* ──────── Selector de dificultad: pills ──────── */
+/* ──────── Selector de dificultad ──────── */
 .difficulty-selector {
-  margin: 2rem 0 1.75rem;
+  margin: 1.5rem 0 1.75rem;
   position: relative;
   z-index: 1;
 }
@@ -579,9 +573,7 @@ body::before {
 }
 
 .generate-button:hover:not(:disabled)::before { opacity: 1; }
-
 .generate-button:active:not(:disabled) { transform: translateY(0); }
-
 .generate-button:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .spinner {
@@ -595,7 +587,6 @@ body::before {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ──────── Errores ──────── */
 .error-message {
   margin-top: 1.5rem;
   padding: 1rem 1.25rem;
@@ -616,10 +607,7 @@ body::before {
   75%      { transform: translateX(6px); }
 }
 
-/* ============================================================================
-   MCQ Challenge
-   ============================================================================ */
-
+/* ──────── Challenge display ──────── */
 .challenge-display {
   margin-top: 2.5rem;
   padding: 2rem;
@@ -667,7 +655,6 @@ body::before {
   box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 15%, transparent);
 }
 
-/* Badge de asignatura */
 .subject-badge {
   display: inline-flex;
   align-items: center;
@@ -692,13 +679,25 @@ body::before {
   background: #ecfdf5;
 }
 
+/* Sutil distinción visual entre áreas de bioquímica */
+.subject-badge[data-subject="biochem"][data-area="metabolismo"] {
+  color: #d97706;
+  border-color: #fed7aa;
+  background: #fffbeb;
+}
+
+.subject-badge[data-subject="biochem"][data-area="genetica"] {
+  color: #059669;
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+}
+
 .challenge-timestamp {
   font-size: 0.78rem;
   color: var(--text-muted);
   margin-left: auto;
 }
 
-/* ──────── Enunciado ──────── */
 .challenge-title {
   font-size: 1.1rem;
   line-height: 1.7;
@@ -722,7 +721,6 @@ body::before {
   color: var(--accent-strong);
 }
 
-/* Bloques de código (Python) */
 .code-block {
   display: block;
   font-family: var(--font-mono);
@@ -816,7 +814,6 @@ body::before {
   padding-top: 0.45rem;
 }
 
-/* Estado: correcta */
 .option.correct {
   background: var(--color-success-bg);
   border-color: var(--color-success-border);
@@ -845,7 +842,6 @@ body::before {
   100% { box-shadow: 0 0 0 16px rgba(16, 185, 129, 0); }
 }
 
-/* Estado: incorrecta */
 .option.incorrect {
   background: var(--color-error-bg);
   border-color: var(--color-error-border);
@@ -931,10 +927,7 @@ body::before {
   white-space: pre-wrap;
 }
 
-/* ============================================================================
-   HISTORIAL
-   ============================================================================ */
-
+/* ──────── Historial ──────── */
 .history-panel {
   animation: fadeUp 0.5s ease-out;
 }
@@ -996,10 +989,7 @@ body::before {
   opacity: 0.55;
 }
 
-/* ============================================================================
-   LOADING
-   ============================================================================ */
-
+/* ──────── Loading ──────── */
 .loading {
   text-align: center;
   padding: 4rem 2rem;
@@ -1043,10 +1033,7 @@ body::before {
   font-weight: 500;
 }
 
-/* ============================================================================
-   AUTENTICACIÓN
-   ============================================================================ */
-
+/* ──────── Auth ──────── */
 .auth-container {
   min-height: 100vh;
   display: flex;
@@ -1112,10 +1099,7 @@ body::before {
   box-shadow: var(--shadow-md);
 }
 
-/* ============================================================================
-   RESPONSIVE
-   ============================================================================ */
-
+/* ──────── Responsive ──────── */
 @media (max-width: 900px) {
   .header-content {
     flex-wrap: wrap;
@@ -1132,50 +1116,41 @@ body::before {
   .app-main {
     padding: 2rem 1rem 3rem;
   }
-
   .challenge-container {
     padding: 1.5rem;
     border-radius: var(--radius-lg);
   }
-
   .section-title {
     font-size: 1.5rem;
   }
-
-  .difficulty-pills {
+  .difficulty-pills,
+  .area-tabs {
     grid-template-columns: 1fr;
   }
-
   .header-content {
     padding: 0.75rem 1rem;
   }
-
   .brand h1 {
     font-size: 1.05rem;
   }
-
   .brand-subtitle {
     display: none;
   }
-
   .header-content nav a {
     padding: 0.4rem 0.6rem;
     font-size: 0.85rem;
   }
-
   .subject-tab {
     padding: 0.4rem 0.75rem;
     font-size: 0.82rem;
   }
 }
 
-/* ============================================================================
-   ACCESIBILIDAD
-   ============================================================================ */
-
+/* ──────── Accesibilidad ──────── */
 button:focus-visible,
 .option:focus-visible,
 .diff-pill:focus-visible,
+.area-tab:focus-visible,
 .subject-tab:focus-visible,
 .header-content nav a:focus-visible {
   outline: 2px solid var(--accent);
@@ -1191,10 +1166,6 @@ button:focus-visible,
     transition-duration: 0.01ms !important;
   }
 }
-
-/* ============================================================================
-   SCROLLBAR
-   ============================================================================ */
 
 ::-webkit-scrollbar {
   width: 12px;

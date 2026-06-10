@@ -21,8 +21,8 @@ def create_challenge_quota(db: Session, user_id: str):
 
 def reset_quota_if_needed(db: Session, quota: models.ChallengeQuota):
     now = datetime.now()
-    if now - quota.last_reset_date > timedelta(hours=0):
-        quota.quota_remaining = 100
+    if now - quota.last_reset_date > timedelta(hours=24):
+        quota.quota_remaining = 50
         quota.last_reset_date = now
         db.commit()
         db.refresh(quota)
@@ -38,10 +38,12 @@ def create_challenge(
     options: str,
     correct_answer_id: int,
     explanation: str,
+    area: Optional[str] = None,
 ):
     db_challenge = models.Challenge(
         difficulty=difficulty,
         subject=subject,
+        area=area,
         created_by=created_by,
         title=title,
         options=options,
@@ -54,12 +56,16 @@ def create_challenge(
     return db_challenge
 
 
-def get_user_challenges(db: Session, user_id: str, subject: Optional[str] = None):
-    """Devuelve el historial de challenges de un usuario.
-
-    Si se pasa `subject`, filtra solo por esa asignatura. Si no, devuelve todo.
-    """
+def get_user_challenges(
+    db: Session,
+    user_id: str,
+    subject: Optional[str] = None,
+    area: Optional[str] = None,
+):
+    """Devuelve historial. Filtros opcionales por subject y/o area."""
     q = db.query(models.Challenge).filter(models.Challenge.created_by == user_id)
     if subject:
         q = q.filter(models.Challenge.subject == subject)
+    if area:
+        q = q.filter(models.Challenge.area == area)
     return q.order_by(models.Challenge.date_created.desc()).all()

@@ -1,25 +1,26 @@
 import "react"
-import {createContext, useContext, useEffect, useState, useCallback} from "react"
+import {createContext, useContext, useEffect, useState, useCallback, useMemo} from "react"
 
 /**
- * SubjectContext — guarda la asignatura activa del usuario, persistente
- * entre sesiones gracias a localStorage.
+ * SubjectContext — guarda la asignatura activa y, opcionalmente, el área
+ * activa dentro de esa asignatura.
  *
- * La asignatura activa controla:
- *   - El branding (acentos de color en CSS, vía atributo data-subject)
- *   - El subject enviado en las peticiones de generación
- *   - El filtro del historial
+ * Persistencia (localStorage):
+ *   - perquiz.activeSubject:  id de la asignatura
+ *   - perquiz.activeArea.<subject>:  id de área (uno por asignatura)
  *
- * Las asignaturas disponibles las descubrimos llamando al endpoint
- * /subjects al arrancar; así si añades una nueva asignatura en el backend
- * basta con desplegar — el frontend la pilla sola.
+ * Convenciones:
+ *   - activeArea === null  → "todas las áreas" (repaso global)
+ *   - activeArea === "metabolismo"  → solo metabolismo
+ *   - activeArea === "genetica"  → solo genética
+ *
+ * Las asignaturas sin áreas (PER) ignoran este concepto.
  */
 
-const SUBJECT_STORAGE_KEY = "perquiz.activeSubject"
+const SUBJECT_KEY = "perquiz.activeSubject"
+const AREA_KEY_PREFIX = "perquiz.activeArea."
 const DEFAULT_SUBJECT = "per"
 
-// Lista de "seed" — se usa hasta que /subjects responda. Permite que la
-// UI funcione aunque el backend no responda inmediatamente.
 const SEED_SUBJECTS = [
     {
         id: "per",
@@ -27,57 +28,93 @@ const SEED_SUBJECTS = [
         full_name: "Programación en Entornos de Red",
         description: "Python OOP, HTTP, sockets, JSON",
         accent: "violet",
+        areas: [],
     },
     {
         id: "biochem",
         name: "Bioquímica",
         full_name: "Bioquímica y Biología Molecular",
-        description: "Replicación, transcripción, traducción, regulación, ingeniería genética",
+        description: "Metabolismo y genética molecular",
         accent: "emerald",
+        areas: [
+            {id: "metabolismo", name: "Metabolismo",
+             description: "Glucólisis, Krebs, β-oxidación, ureogénesis, hormonas"},
+            {id: "genetica",    name: "Genética",
+             description: "Replicación, transcripción, traducción, ingeniería"},
+        ],
     },
 ]
 
 const SubjectContext = createContext(null)
 
+function readStoredArea(subjectId) {
+    try {
+        const v = localStorage.getItem(AREA_KEY_PREFIX + subjectId)
+        // null = "todas"; ""  también lo interpretamos como null
+        return v && v !== "" ? v : null
+    } catch {
+        return null
+    }
+}
+
+function writeStoredArea(subjectId, area) {
+    try {
+        if (area === null || area === "") {
+            localStorage.removeItem(AREA_KEY_PREFIX + subjectId)
+        } else {
+            localStorage.setItem(AREA_KEY_PREFIX + subjectId, area)
+        }
+    } catch { /* ignore */ }
+}
+
 export function SubjectProvider({children, apiClient}) {
     const [subjects, setSubjects] = useState(SEED_SUBJECTS)
     const [activeSubject, setActiveSubjectState] = useState(() => {
         try {
-            const stored = localStorage.getItem(SUBJECT_STORAGE_KEY)
-            return stored || DEFAULT_SUBJECT
+            return localStorage.getItem(SUBJECT_KEY) || DEFAULT_SUBJECT
         } catch {
             return DEFAULT_SUBJECT
         }
     })
+    // Áreas activas por asignatura (sólo aplica a las que tienen subáreas)
+    const [areaBySubject, setAreaBySubject] = useState(() => {
+        const out = {}
+        for (const s of SEED_SUBJECTS) {
+            if (s.areas?.length) out[s.id] = readStoredArea(s.id)
+        }
+        return out
+    })
 
-    // Carga inicial del catálogo de asignaturas desde el backend
+    // Carga del catálogo desde el backend
     useEffect(() => {
         if (!apiClient) return
         apiClient("subjects")
             .then((data) => {
                 if (data?.subjects?.length) {
                     setSubjects(data.subjects)
-                    // Si la asignatura guardada en localStorage ya no existe,
-                    // caemos a la primera disponible.
+                    // Si la asignatura guardada ya no existe, caemos a la primera
                     if (!data.subjects.find(s => s.id === activeSubject)) {
                         setActiveSubjectState(data.subjects[0].id)
                     }
+                    // Inicializa áreas si vinieron asignaturas nuevas
+                    setAreaBySubject((prev) => {
+                        const next = {...prev}
+                        for (const s of data.subjects) {
+                            if (s.areas?.length && !(s.id in next)) {
+                                next[s.id] = readStoredArea(s.id)
+                            }
+                        }
+                        return next
+                    })
                 }
             })
-            .catch((err) => {
-                console.warn("No se pudieron cargar las asignaturas:", err)
-                // Mantenemos las seed.
-            })
+            .catch((err) => console.warn("No se pudieron cargar las asignaturas:", err))
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [apiClient])
 
-    // Sincroniza atributo data-subject en <body> y localStorage
+    // Sincroniza body[data-subject], body[data-accent] y localStorage del subject
     useEffect(() => {
-        try {
-            localStorage.setItem(SUBJECT_STORAGE_KEY, activeSubject)
-        } catch {
-            // localStorage puede no estar disponible (modo privado); seguimos.
-        }
+        try { localStorage.setItem(SUBJECT_KEY, activeSubject) } catch { /* ignore */ }
         const meta = subjects.find(s => s.id === activeSubject)
         if (meta) {
             document.body.dataset.subject = activeSubject
@@ -91,13 +128,35 @@ export function SubjectProvider({children, apiClient}) {
         }
     }, [subjects])
 
-    const activeMeta = subjects.find(s => s.id === activeSubject) || subjects[0]
+    // Área activa: depende de la asignatura activa
+    const activeArea = areaBySubject[activeSubject] ?? null
+
+    const setActiveArea = useCallback((area) => {
+        // Normalizamos: "" o undefined → null ("todas")
+        const normalized = (area === "" || area === undefined) ? null : area
+        setAreaBySubject((prev) => ({...prev, [activeSubject]: normalized}))
+        writeStoredArea(activeSubject, normalized)
+    }, [activeSubject])
+
+    const activeMeta = useMemo(
+        () => subjects.find(s => s.id === activeSubject) || subjects[0],
+        [subjects, activeSubject]
+    )
+
+    const activeAreaMeta = useMemo(() => {
+        if (!activeArea) return null
+        return activeMeta?.areas?.find(a => a.id === activeArea) || null
+    }, [activeMeta, activeArea])
 
     const value = {
         subjects,
         activeSubject,
         activeMeta,
         setActiveSubject,
+        activeArea,            // null | "metabolismo" | "genetica" | ...
+        activeAreaMeta,        // metadata del área activa, o null
+        setActiveArea,
+        hasAreas: !!activeMeta?.areas?.length,
     }
 
     return (

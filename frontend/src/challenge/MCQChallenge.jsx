@@ -8,6 +8,11 @@ const SUBJECT_LABELS = {
     biochem: "Bioquímica",
 }
 
+const AREA_LABELS = {
+    metabolismo: "Metabolismo",
+    genetica: "Genética",
+}
+
 function renderTitleWithCode(title) {
     if (!title || typeof title !== "string") return title
     const lines = title.split("\n")
@@ -102,7 +107,11 @@ export function MCQChallenge({challenge, showExplanation = false}) {
     const difficulty = (challenge.difficulty || "easy").toLowerCase()
     const diffLabel = difficulty === "easy"
         ? "Fácil" : difficulty === "medium" ? "Medio" : "Difícil"
+
     const subjectLabel = SUBJECT_LABELS[challenge.subject] || challenge.subject
+    const areaLabel = challenge.area ? AREA_LABELS[challenge.area] || challenge.area : null
+    // Texto compuesto del badge: "Bioquímica · Genética" o solo "PER"
+    const badgeText = areaLabel ? `${subjectLabel} · ${areaLabel}` : subjectLabel
 
     const renderedTitle = renderTitleWithCode(challenge.title)
     const hasCode = renderedTitle && renderedTitle.some(
@@ -120,8 +129,9 @@ export function MCQChallenge({challenge, showExplanation = false}) {
                     <span
                         className="subject-badge"
                         data-subject={challenge.subject}
+                        data-area={challenge.area || ""}
                     >
-                        {subjectLabel}
+                        {badgeText}
                     </span>
                 )}
                 {challenge.timestamp && (

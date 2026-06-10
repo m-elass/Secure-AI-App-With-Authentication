@@ -10,63 +10,71 @@ const DIFFICULTIES = [
     {id: "hard",   name: "Difícil", className: "hard"},
 ]
 
-// Descripciones contextualizadas por asignatura para que se note que la
-// app sabe en qué estás.
+// Descripciones contextualizadas — ahora también por área de bioquímica
 const DIFFICULTY_DESCRIPTIONS = {
     per: {
         easy:   "Conceptos básicos: clases, verbos HTTP, JSON",
         medium: "Herencia, REST, sockets, loads vs load",
         hard:   "Análisis de código, traza HTTP, override avanzado",
     },
-    biochem: {
+    "biochem:genetica": {
         easy:   "Conceptos clave: enzimas, código genético, replicación",
         medium: "Mecanismos: transcripción, traducción, operones",
         hard:   "Regulación eucariota, ingeniería genética, CRISPR",
     },
+    "biochem:metabolismo": {
+        easy:   "Termodinámica, hormonas, glucólisis, ciclo de Krebs",
+        medium: "Gluconeogénesis, β-oxidación, cadena respiratoria, ureogénesis",
+        hard:   "Regulación alostérica y hormonal, integración del metabolismo",
+    },
+    "biochem:all": {
+        easy:   "Conceptos básicos mezclados de toda la bioquímica",
+        medium: "Mecanismos clave de metabolismo y genética",
+        hard:   "Integración avanzada de toda la asignatura",
+    },
 }
 
-// Mensajes de carga rotativos, también contextualizados.
 const LOADING_MESSAGES = {
     per: [
         "Consultando el temario de PER...",
         "Diseñando distractores plausibles...",
         "Buscando ese bug sutil en el código...",
         "Revisando los apuntes de la URJC...",
-        "Eligiendo el nivel adecuado de trampa...",
     ],
     biochem: [
         "Consultando el temario de bioquímica...",
-        "Repasando los temas 14 a 18...",
         "Diseñando distractores plausibles...",
-        "Revisando los apuntes de la profesora...",
         "Buscando ese matiz que separa los conceptos...",
+        "Revisando los apuntes de la profesora...",
     ],
 }
 
 const FALLBACK_LOADING = ["Generando pregunta..."]
+
+function descKey(subject, area) {
+    if (subject !== "biochem") return subject
+    return area ? `biochem:${area}` : "biochem:all"
+}
 
 export function ChallengeGenerator() {
     const [challenge, setChallenge] = useState(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState(null)
     const [difficulty, setDifficulty] = useState("easy")
-    const [quota, setQuota] = useState(null)
     const [loadingMsg, setLoadingMsg] = useState("")
     const {makeRequest} = useApi()
-    const {activeSubject, activeMeta} = useSubject()
+    const {
+        activeSubject, activeMeta,
+        activeArea, activeAreaMeta, setActiveArea, hasAreas,
+    } = useSubject()
 
-    // Cada vez que cambia la asignatura, limpiamos la pregunta visible
-    // (no tiene sentido seguir viendo una de bioquímica al pasar a PER).
+    // Limpia challenge al cambiar de asignatura o área
     useEffect(() => {
         setChallenge(null)
         setError(null)
-    }, [activeSubject])
+    }, [activeSubject, activeArea])
 
-    useEffect(() => {
-        fetchQuota()
-    }, [])
-
-    // Rotación de mensajes de carga mientras se genera
+    // Rotación de mensajes de carga
     useEffect(() => {
         if (!isLoading) return
         const pool = LOADING_MESSAGES[activeSubject] || FALLBACK_LOADING
@@ -79,25 +87,23 @@ export function ChallengeGenerator() {
         return () => clearInterval(id)
     }, [isLoading, activeSubject])
 
-    const fetchQuota = async () => {
-        try {
-            const data = await makeRequest("quota")
-            setQuota(data)
-        } catch (err) {
-            console.log(err)
-        }
-    }
-
     const generateChallenge = async () => {
         setIsLoading(true)
         setError(null)
         try {
+            const body = {
+                difficulty,
+                subject: activeSubject,
+            }
+            // Solo enviamos area si la asignatura tiene áreas y el usuario eligió una
+            if (hasAreas && activeArea) {
+                body.area = activeArea
+            }
             const data = await makeRequest("generate-challenge", {
                 method: "POST",
-                body: JSON.stringify({difficulty, subject: activeSubject}),
+                body: JSON.stringify(body),
             })
             setChallenge(data)
-            fetchQuota()
         } catch (err) {
             setError(err.message || "No se pudo generar la pregunta.")
         } finally {
@@ -105,33 +111,59 @@ export function ChallengeGenerator() {
         }
     }
 
-    const getNextResetTime = () => {
-        if (!quota?.last_reset_date) return null
-        const resetDate = new Date(quota.last_reset_date)
-        resetDate.setHours(resetDate.getHours() + 24)
-        return resetDate
-    }
+    const descriptions =
+        DIFFICULTY_DESCRIPTIONS[descKey(activeSubject, activeArea)] ||
+        DIFFICULTY_DESCRIPTIONS.per
 
-    const remaining = Infinity
-    const noQuota = false
-    const descriptions = DIFFICULTY_DESCRIPTIONS[activeSubject] || DIFFICULTY_DESCRIPTIONS.per
+    // Texto del subtítulo
+    let subtitleScope = activeMeta?.full_name || activeMeta?.name || activeSubject
+    if (hasAreas && activeAreaMeta) {
+        subtitleScope = `${activeMeta.name} · ${activeAreaMeta.name}`
+    } else if (hasAreas && !activeArea) {
+        subtitleScope = `${activeMeta.name} · todas las áreas`
+    }
 
     return (
         <div className="challenge-container">
             <h2 className="section-title">Generador de preguntas</h2>
             <p className="section-subtitle">
                 Preguntas tipo test al estilo del examen real de{" "}
-                <strong>{activeMeta?.full_name || activeMeta?.name || activeSubject}</strong>.
-                Elige una dificultad y empieza a practicar.
+                <strong>{subtitleScope}</strong>. Elige una dificultad y empieza a practicar.
             </p>
 
-            <div className="quota-display">
-                <div className="quota-icon" aria-hidden="true">⚡</div>
-                <div className="quota-info">
-                    <div className="quota-label">Modo desarrollo</div>
-                    <div className="quota-value">Sin límite</div>
+            {/* Sub-selector de área (solo si la asignatura tiene áreas) */}
+            {hasAreas && (
+                <div className="area-selector">
+                    <label className="difficulty-label">Área</label>
+                    <div className="area-tabs" role="radiogroup" aria-label="Área dentro de la asignatura">
+                        <button
+                            type="button"
+                            role="radio"
+                            aria-checked={activeArea === null}
+                            className={`area-tab ${activeArea === null ? "active" : ""}`}
+                            onClick={() => setActiveArea(null)}
+                            disabled={isLoading}
+                        >
+                            <span className="area-tab-name">Todo</span>
+                            <span className="area-tab-desc">Mezcla aleatoria de las dos áreas</span>
+                        </button>
+                        {activeMeta.areas.map((a) => (
+                            <button
+                                key={a.id}
+                                type="button"
+                                role="radio"
+                                aria-checked={activeArea === a.id}
+                                className={`area-tab ${activeArea === a.id ? "active" : ""}`}
+                                onClick={() => setActiveArea(a.id)}
+                                disabled={isLoading}
+                            >
+                                <span className="area-tab-name">{a.name}</span>
+                                <span className="area-tab-desc">{a.description}</span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
 
             <div className="difficulty-selector">
                 <label className="difficulty-label">Dificultad</label>
@@ -158,7 +190,7 @@ export function ChallengeGenerator() {
 
             <button
                 onClick={generateChallenge}
-                disabled={isLoading || noQuota}
+                disabled={isLoading}
                 className="generate-button"
             >
                 {isLoading ? (
@@ -166,8 +198,6 @@ export function ChallengeGenerator() {
                         <span className="spinner" aria-hidden="true"></span>
                         <span>{loadingMsg}</span>
                     </>
-                ) : noQuota ? (
-                    <span>Has agotado tu cuota diaria</span>
                 ) : (
                     <>
                         <span>Generar pregunta</span>

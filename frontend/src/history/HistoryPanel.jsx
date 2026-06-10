@@ -6,25 +6,31 @@ import {useSubject} from "../utils/SubjectContext.jsx"
 
 export function HistoryPanel() {
     const {makeRequest} = useApi()
-    const {activeSubject, activeMeta, subjects} = useSubject()
+    const {activeSubject, activeMeta, activeArea, activeAreaMeta, hasAreas} = useSubject()
     const [history, setHistory] = useState([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(null)
     const [difficultyFilter, setDifficultyFilter] = useState("all")
     const [showAllSubjects, setShowAllSubjects] = useState(false)
 
-    // Recargamos historial cuando cambia la asignatura o el toggle global
     useEffect(() => {
         fetchHistory()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeSubject, showAllSubjects])
+    }, [activeSubject, activeArea, showAllSubjects])
 
     const fetchHistory = async () => {
         setIsLoading(true)
         setError(null)
         try {
-            const params = showAllSubjects ? "" : `?subject=${encodeURIComponent(activeSubject)}`
-            const data = await makeRequest("my-history" + params)
+            let qs = ""
+            if (!showAllSubjects) {
+                const params = [`subject=${encodeURIComponent(activeSubject)}`]
+                if (hasAreas && activeArea) {
+                    params.push(`area=${encodeURIComponent(activeArea)}`)
+                }
+                qs = "?" + params.join("&")
+            }
+            const data = await makeRequest("my-history" + qs)
             setHistory(data.challenges || [])
         } catch (err) {
             setError("No se pudo cargar el historial.")
@@ -67,28 +73,36 @@ export function HistoryPanel() {
         ? history
         : history.filter(c => (c.difficulty || "").toLowerCase() === difficultyFilter)
 
+    // Texto del subtítulo del historial
+    let scopeText
+    if (showAllSubjects) {
+        scopeText = "Todas las preguntas que has generado, de cualquier asignatura y área."
+    } else if (hasAreas) {
+        if (activeArea) {
+            scopeText = <>Tus preguntas de <strong>{activeMeta?.name} · {activeAreaMeta?.name}</strong>.</>
+        } else {
+            scopeText = <>Tus preguntas de <strong>{activeMeta?.name}</strong> (todas las áreas).</>
+        }
+    } else {
+        scopeText = <>Tus preguntas de <strong>{activeMeta?.full_name || activeMeta?.name}</strong>.</>
+    }
+
     return (
         <div className="history-panel">
             <div className="history-header">
                 <div>
                     <h2 className="section-title">Tu historial</h2>
-                    <p className="section-subtitle" style={{margin: 0}}>
-                        {showAllSubjects
-                            ? "Todas las preguntas que has generado, de cualquier asignatura."
-                            : <>Tus preguntas de <strong>{activeMeta?.full_name || activeMeta?.name}</strong>.</>}
-                    </p>
+                    <p className="section-subtitle" style={{margin: 0}}>{scopeText}</p>
                 </div>
 
-                {subjects.length > 1 && (
-                    <label className="subject-toggle">
-                        <input
-                            type="checkbox"
-                            checked={showAllSubjects}
-                            onChange={(e) => setShowAllSubjects(e.target.checked)}
-                        />
-                        <span>Ver todas las asignaturas</span>
-                    </label>
-                )}
+                <label className="subject-toggle">
+                    <input
+                        type="checkbox"
+                        checked={showAllSubjects}
+                        onChange={(e) => setShowAllSubjects(e.target.checked)}
+                    />
+                    <span>Ver todo</span>
+                </label>
             </div>
 
             {history.length > 0 && (
@@ -145,8 +159,7 @@ export function HistoryPanel() {
                 <div className="history-empty">
                     <div className="history-empty-icon" aria-hidden="true">📭</div>
                     <p style={{fontSize: "1rem", marginBottom: "0.5rem", color: "var(--text-secondary)"}}>
-                        Todavía no has generado ninguna pregunta
-                        {!showAllSubjects && <> de <strong>{activeMeta?.name}</strong></>}
+                        Todavía no has generado ninguna pregunta aquí
                     </p>
                     <p style={{fontSize: "0.85rem"}}>
                         Vuelve al generador y prueba a hacer la primera.

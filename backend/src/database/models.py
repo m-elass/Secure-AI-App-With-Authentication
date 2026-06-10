@@ -12,10 +12,12 @@ class Challenge(Base):
 
     id = Column(Integer, primary_key=True)
     difficulty = Column(String, nullable=False)
-    # subject distingue PER ("per") de Bioquímica ("biochem"), etc.
-    # Las preguntas creadas antes de añadir esta columna se considerarán "per"
-    # (es el valor por defecto en la migración para no romper compatibilidad).
+    # Asignatura: "per", "biochem"
     subject = Column(String, nullable=False, default="per", index=True)
+    # Área dentro de la asignatura (solo para subjects con subdivisión, como
+    # biochem → "metabolismo" / "genetica"). Puede ser NULL si la asignatura
+    # no tiene áreas o si la pregunta es "todas las áreas".
+    area = Column(String, nullable=True, index=True)
     date_created = Column(DateTime, default=datetime.now)
     created_by = Column(String, nullable=False)
     title = Column(String, nullable=False)

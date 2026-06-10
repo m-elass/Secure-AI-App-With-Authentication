@@ -1,59 +1,85 @@
 """
-Paquete de generadores de preguntas por asignatura.
+Paquete de generadores de preguntas por asignatura/área.
 
 Uso:
-    from backend.src.generators import get_generator
-    challenge = get_generator("per")("easy")
-    challenge = get_generator("biochem")("medium")
+    from backend.src.generators import generate
+    challenge = generate(subject="per", difficulty="easy")
+    challenge = generate(subject="biochem", difficulty="medium", area="metabolismo")
 """
-from typing import Callable, Dict, Any
+from typing import Dict, Any, Optional
 
 from . import per as _per
 from . import biochem as _biochem
 
 
-# Tabla de despacho: nombre canónico de la asignatura → función generadora.
-_REGISTRY: Dict[str, Callable[[str], Dict[str, Any]]] = {
-    "per": _per.generate,
-    "biochem": _biochem.generate,
-}
-
-# Asignaturas soportadas, en orden de aparición en la UI.
+# Asignaturas soportadas
 SUPPORTED_SUBJECTS = ["per", "biochem"]
 
-# Metadata para que el frontend pueda construir el selector dinámicamente.
-# El backend puede exponerla en un endpoint /subjects si se desea.
+# Áreas disponibles por asignatura (vacío = sin áreas, todo va junto)
+SUBJECT_AREAS = {
+    "per": [],
+    "biochem": ["metabolismo", "genetica"],
+}
+
+
+# Metadata para el frontend
 SUBJECT_METADATA = {
     "per": {
         "id": "per",
         "name": "PER",
         "full_name": "Programación en Entornos de Red",
         "description": "Python OOP, HTTP, sockets, JSON",
-        "accent": "violet",   # el frontend usa esto para el color de marca
+        "accent": "violet",
+        "areas": [],
     },
     "biochem": {
         "id": "biochem",
         "name": "Bioquímica",
         "full_name": "Bioquímica y Biología Molecular",
-        "description": "Replicación, transcripción, traducción, regulación, ingeniería genética",
+        "description": "Metabolismo y genética molecular",
         "accent": "emerald",
+        "areas": [
+            {"id": "metabolismo", "name": "Metabolismo",
+             "description": "Glucólisis, Krebs, β-oxidación, ureogénesis, hormonas"},
+            {"id": "genetica",    "name": "Genética",
+             "description": "Replicación, transcripción, traducción, ingeniería"},
+        ],
     },
 }
 
 
-def get_generator(subject: str) -> Callable[[str], Dict[str, Any]]:
-    """Devuelve la función generadora para una asignatura.
+def is_supported(subject: str) -> bool:
+    return (subject or "").lower().strip() in SUPPORTED_SUBJECTS
 
-    Lanza ValueError si la asignatura no existe.
+
+def has_areas(subject: str) -> bool:
+    return bool(SUBJECT_AREAS.get((subject or "").lower().strip(), []))
+
+
+def is_valid_area(subject: str, area: Optional[str]) -> bool:
+    """area=None es válido siempre (significa 'todas las áreas')."""
+    if area is None or area == "":
+        return True
+    return area in SUBJECT_AREAS.get((subject or "").lower().strip(), [])
+
+
+def generate(subject: str, difficulty: str, area: Optional[str] = None) -> Dict[str, Any]:
+    """Despacha la generación a la asignatura correcta.
+
+    Args:
+        subject: "per" | "biochem"
+        difficulty: "easy" | "medium" | "hard"
+        area: solo aplicable a asignaturas con áreas (biochem). None = aleatorio
+              entre las áreas disponibles.
+
+    Returns:
+        dict con title, options[4], correct_answer_id, explanation,
+        y opcionalmente _area si la asignatura tiene áreas.
     """
     subject = (subject or "").lower().strip()
-    if subject not in _REGISTRY:
-        raise ValueError(
-            f"Asignatura desconocida: {subject!r}. "
-            f"Soportadas: {SUPPORTED_SUBJECTS}"
-        )
-    return _REGISTRY[subject]
-
-
-def is_supported(subject: str) -> bool:
-    return (subject or "").lower().strip() in _REGISTRY
+    if subject == "per":
+        return _per.generate(difficulty)
+    elif subject == "biochem":
+        return _biochem.generate(difficulty, area=area)
+    else:
+        raise ValueError(f"Asignatura desconocida: {subject!r}")

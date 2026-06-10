@@ -1,12 +1,9 @@
 """
 Generador de preguntas para PER (Programación en Entornos de Red, URJC).
 
-Estrategia: cada pregunta se construye sobre un FRAGMENTO LITERAL del
-temario (extraído por scripts/ingest_pdfs.py). Esto garantiza que las
-preguntas se mantengan dentro de lo que tus apuntes cubren realmente.
-
-Si el corpus no está disponible, caemos a una estrategia "sin corpus"
-basada solo en el system prompt y few-shots, igualmente válida.
+PER no usa subáreas, pero la función generate() acepta `area` como
+parámetro opcional (lo ignora) para mantener una firma uniforme con
+el resto de generadores.
 """
 import random
 from typing import Dict, Any, List, Optional
@@ -16,37 +13,14 @@ from . import _common
 SUBJECT = "per"
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Pistas por dificultad: cada dificultad se asocia a ciertos tipos de PDF
-# de origen, para que el reparto temático sea coherente con el nivel.
-# ──────────────────────────────────────────────────────────────────────────────
-
 DIFFICULTY_HINTS = {
-    "easy": [
-        # Fundamentos: que vengan de los PDFs de teoría básica
-        None, None, None,  # cualquier fragmento
-        "JSON", "redes",
-    ],
-    "medium": [
-        None, None,
-        "HTTP", "Web", "JSON", "OOP", "Object_Oriented",
-    ],
-    "hard": [
-        None,
-        "HTTP", "sockets", "Web", "OOP", "Prácticas",
-        "entornos_de_red",
-    ],
+    "easy": [None, None, None, "JSON", "redes"],
+    "medium": [None, None, "HTTP", "Web", "JSON", "OOP", "Object_Oriented"],
+    "hard": [None, "HTTP", "sockets", "Web", "OOP", "Prácticas", "entornos_de_red"],
 }
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# FEW-SHOT EXAMPLES (estilo URJC / PER, calcados de exámenes reales)
-# ──────────────────────────────────────────────────────────────────────────────
-# Distribuimos correct_answer_id entre las 4 posiciones para no inducir sesgo.
-# Cuidamos que las 4 opciones tengan longitudes parecidas.
-
 FEW_SHOT_EXAMPLES = [
-    # ── correct_id = 3 ──
     {
         "title": (
             "Analiza el siguiente fragmento de código en Python y selecciona la "
@@ -67,14 +41,11 @@ FEW_SHOT_EXAMPLES = [
         "correct_answer_id": 3,
         "explanation": (
             "La respuesta correcta es la D. Cada llamada Coche() crea un objeto nuevo, "
-            "por lo que mi_coche y nuevo_coche son dos instancias distintas. La asignación "
-            "otro_coche = mi_coche no crea un tercer objeto: solo añade una referencia al "
-            "mismo que ya apuntaba mi_coche.\n\n"
-            "A confunde los roles (Coche sigue siendo la clase). B ignora que = no crea "
-            "objeto. C es falsa porque nuevo_coche apunta a un objeto distinto."
+            "por lo que mi_coche y nuevo_coche son dos instancias distintas. "
+            "otro_coche = mi_coche no crea un tercer objeto: solo añade una referencia.\n\n"
+            "A confunde los roles. B ignora que = no crea objeto. C es falsa."
         ),
     },
-    # ── correct_id = 0 ──
     {
         "title": (
             "¿Cuál de las siguientes afirmaciones describe correctamente la "
@@ -88,18 +59,15 @@ FEW_SHOT_EXAMPLES = [
         ],
         "correct_answer_id": 0,
         "explanation": (
-            "La respuesta correcta es la A. HTTP transmite los datos sin cifrar, lo que permite "
-            "su interceptación. HTTPS añade cifrado SSL/TLS y protege la comunicación.\n\n"
-            "B es falsa porque la seguridad SÍ varía. C invierte la realidad: el que cifra es "
-            "HTTPS. D es incorrecta: HTTPS se usa en cualquier comunicación web, no solo "
-            "entre servidores internos."
+            "La respuesta correcta es la A. HTTP transmite los datos sin cifrar. HTTPS añade "
+            "cifrado SSL/TLS y protege la comunicación.\n\n"
+            "B es falsa. C invierte la realidad. D es incorrecta: HTTPS se usa en cualquier "
+            "comunicación web."
         ),
     },
-    # ── correct_id = 1 ──
     {
         "title": (
-            "Observa el siguiente código en Python y determina qué se imprimirá por "
-            "pantalla al ejecutarlo:\n\n"
+            "Observa el siguiente código en Python y determina qué se imprimirá:\n\n"
             "class Animal:\n"
             "    def hablar(self):\n"
             "        print(\"El animal hace un sonido\")\n\n"
@@ -117,15 +85,12 @@ FEW_SHOT_EXAMPLES = [
         ],
         "correct_answer_id": 1,
         "explanation": (
-            "La respuesta correcta es la B. Al invocar mi_mascota.hablar(), Python busca el "
-            "método primero en la clase del objeto (Perro). Como lo encuentra allí, lo "
-            "ejecuta. Esto es la sobreescritura (override), base del polimorfismo.\n\n"
-            "A sería el resultado si Perro NO redefiniera hablar. C es falsa: redefinir un "
-            "método heredado es perfectamente válido en Python. D es falsa: solo se ejecuta "
-            "el método de la subclase, salvo invocación explícita de super().hablar()."
+            "La respuesta correcta es la B. Python busca el método primero en la clase del "
+            "objeto (Perro). Como lo encuentra, lo ejecuta. Esto es sobreescritura (override).\n\n"
+            "A sería el resultado si Perro NO redefiniera hablar. C es falsa: redefinir es "
+            "válido en Python. D es falsa: solo se ejecuta el método de la subclase."
         ),
     },
-    # ── correct_id = 2 ──
     {
         "title": (
             "Considera el siguiente fragmento de código en Python:\n\n"
@@ -141,7 +106,7 @@ FEW_SHOT_EXAMPLES = [
             "}\n"
             "'''\n"
             "producto = json.loads(datos)\n\n"
-            "¿Cuál de las siguientes afirmaciones es correcta respecto al código anterior?"
+            "¿Cuál de las siguientes afirmaciones es correcta?"
         ),
         "options": [
             "La variable producto sigue siendo una cadena de texto que contiene el JSON original como string.",
@@ -151,69 +116,47 @@ FEW_SHOT_EXAMPLES = [
         ],
         "correct_answer_id": 2,
         "explanation": (
-            "La respuesta correcta es la C. json.loads() (con 's' final, de 'string') deserializa "
-            "una cadena JSON y la convierte en estructuras nativas de Python: el objeto JSON "
-            "externo es un dict y el objeto anidado también es un dict. Por tanto, "
-            "producto['caracteristicas'] es un diccionario.\n\n"
-            "A es falsa: tras loads() ya tenemos dict, no string. B confunde objeto JSON con "
-            "array: los objetos {...} pasan a dict, los arrays [...] a list. D confunde "
-            "loads() con load(): loads() opera sobre strings en memoria; load() lee de fichero."
+            "La respuesta correcta es la C. json.loads() deserializa una cadena JSON en "
+            "estructuras nativas: el objeto JSON externo es un dict y el anidado también.\n\n"
+            "A es falsa. B confunde objeto JSON con array. D confunde loads() con load()."
         ),
     },
 ]
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# SYSTEM PROMPT
-# ──────────────────────────────────────────────────────────────────────────────
-
 SYSTEM_PROMPT_HEAD = """\
 Eres profesor de la asignatura "Programación en Entornos de Red" (PER) de la \
-URJC y experto en diseñar preguntas tipo test para exámenes universitarios. \
-Tu trabajo es generar UNA pregunta de examen siguiendo EXACTAMENTE el estilo \
-de los exámenes oficiales.
+URJC y experto en diseñar preguntas tipo test para exámenes universitarios.
 
 ═══════════════════════════════════════════════════════════════════════════════
-TEMARIO OFICIAL DE LA ASIGNATURA (referencia, no agregues nada fuera de aquí)
+TEMARIO OFICIAL DE PER
 ═══════════════════════════════════════════════════════════════════════════════
 
-BLOQUE 1 — Programación Orientada a Objetos en Python
-  Clases vs objetos, __init__, self, atributos vs métodos, métodos dunder,
-  herencia con super(), sobreescritura, polimorfismo, paso por referencia
-  vs inmutables.
+BLOQUE 1 — POO en Python: clases, __init__, self, métodos, herencia con
+super(), sobreescritura, polimorfismo, paso por referencia vs inmutables.
 
-BLOQUE 2 — Protocolo HTTP / HTTPS
-  Verbos HTTP estándar (GET, POST, PUT, PATCH, DELETE, HEAD; NO existen
-  CREATE/READ/MODIFY/EXECUTE/PUSH). Idempotencia. Partes de la URL.
-  Cabeceras (Content-Type, Host, User-Agent, Accept). Códigos de estado.
-  Diferencia HTTP/HTTPS (SSL/TLS). REST: usa verbos HTTP, datos en JSON.
+BLOQUE 2 — HTTP / HTTPS: verbos estándar (GET, POST, PUT, PATCH, DELETE,
+HEAD). NO existen verbos como CREATE/READ/MODIFY/EXECUTE/PUSH. Idempotencia.
+URL, cabeceras (Content-Type, Host, User-Agent). Códigos de estado.
+HTTP/HTTPS (SSL/TLS). REST: verbos HTTP + JSON.
 
-BLOQUE 3 — JSON
-  loads/load (deserializar), dumps/dump (serializar). Objeto {...}→dict,
-  array [...]→list.
+BLOQUE 3 — JSON: loads/load (deserializar), dumps/dump (serializar).
+Objeto {...}→dict, array [...]→list.
 
-BLOQUE 4 — Sockets en Python
-  socket.socket(AF_INET, SOCK_STREAM). Servidor: bind/listen/accept.
-  Cliente: connect. 127.0.0.1 (localhost), 0.0.0.0 (todas las interfaces).
-  Puerto de escucha del servidor vs puerto asignado al cliente.
+BLOQUE 4 — Sockets: socket.socket(AF_INET, SOCK_STREAM). Servidor: bind/
+listen/accept. Cliente: connect. 127.0.0.1, 0.0.0.0. Puertos.
 
-BLOQUE 5 — Servidor HTTP en Python
-  BaseHTTPRequestHandler, do_GET, do_POST. send_response → send_header →
-  end_headers. Lectura POST con Content-Length y rfile.read.
+BLOQUE 5 — Servidor HTTP en Python: BaseHTTPRequestHandler, do_GET, do_POST.
 
-BLOQUE 6 — Tests unitarios con unittest
-  TestCase, assertEqual, assertTrue, assertFalse, assertIs, assertIn,
-  assertRaises.
+BLOQUE 6 — unittest: TestCase, assertEqual, assertTrue, assertRaises.
 """
 
 
-def _build_messages(difficulty: str) -> List[Dict[str, str]]:
-    """Construye el conjunto de mensajes para una generación PER."""
+def _build_messages(difficulty: str, area: Optional[str] = None) -> List[Dict[str, str]]:
     diff = difficulty.lower()
     if diff not in DIFFICULTY_HINTS:
         diff = "easy"
 
-    # Elegimos un fragmento del corpus alineado con la dificultad
     hint = random.choice(DIFFICULTY_HINTS[diff])
     fragment = _common.pick_fragment(SUBJECT, source_hint=hint)
 
@@ -221,15 +164,11 @@ def _build_messages(difficulty: str) -> List[Dict[str, str]]:
 
     msgs: List[Dict[str, str]] = [{"role": "system", "content": system_prompt}]
 
-    # 2 ejemplos few-shot rotatorios
     for ex in random.sample(FEW_SHOT_EXAMPLES, k=2):
         msgs.append({"role": "user", "content": "Genera una pregunta de ejemplo."})
         msgs.append({"role": "assistant", "content": _dump_json(ex)})
 
-    # Mensaje real de petición
-    user_msg = (
-        f"Genera UNA pregunta tipo test de dificultad **{diff.upper()}**.\n\n"
-    )
+    user_msg = f"Genera UNA pregunta tipo test de dificultad **{diff.upper()}**.\n\n"
     if fragment:
         user_msg += _common.build_context_block(fragment) + "\n\n"
     else:
@@ -238,17 +177,15 @@ def _build_messages(difficulty: str) -> List[Dict[str, str]]:
             "temario descrito en el system prompt.)\n\n"
         )
     user_msg += (
-        "RECUERDA: las 4 opciones deben tener longitudes parecidas; la "
-        "correcta NO puede ser visiblemente más larga ni más corta que las "
-        "demás. Distribuye aleatoriamente la posición de la correcta entre "
-        "0, 1, 2 y 3. Devuelve solo el JSON con title/options/"
-        "correct_answer_id/explanation."
+        "RECUERDA: las 4 opciones deben tener longitudes parecidas. "
+        "Distribuye la posición de la correcta entre 0, 1, 2 y 3. "
+        "Devuelve solo el JSON."
     )
     msgs.append({"role": "user", "content": user_msg})
     return msgs
 
 
-def _dump_json(obj: Dict[str, Any]) -> str:
+def _dump_json(obj):
     import json
     return json.dumps(obj, ensure_ascii=False)
 
@@ -270,16 +207,16 @@ FALLBACK = {
     ],
     "correct_answer_id": 1,
     "explanation": (
-        "La respuesta correcta es la B. La asignación libro2 = libro1 no crea un nuevo "
-        "objeto: solo añade un segundo nombre que referencia al mismo objeto que libro1.\n\n"
-        "A es falsa: solo se ha llamado a Libro() una vez. C confunde asignación con "
-        "herencia (que se haría con 'class libro2(Libro)'). D es falsa: __init__ está "
-        "perfectamente definido."
+        "La respuesta correcta es la B. libro2 = libro1 no crea un nuevo objeto: solo "
+        "añade un segundo nombre que referencia al mismo objeto.\n\n"
+        "A es falsa. C confunde asignación con herencia. D es falsa."
     ),
 }
 
 
-def generate(difficulty: str) -> Dict[str, Any]:
+def generate(difficulty: str, area: Optional[str] = None) -> Dict[str, Any]:
+    """Genera una pregunta de PER. El parámetro `area` se acepta por simetría
+    con otros generadores pero PER no usa subáreas; se ignora."""
     return _common.generate_with_validation(
         build_messages=lambda: _build_messages(difficulty),
         fallback=FALLBACK,
