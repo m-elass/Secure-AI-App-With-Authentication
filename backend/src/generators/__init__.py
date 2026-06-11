@@ -12,7 +12,6 @@ from . import per as _per
 from . import biochem as _biochem
 
 
-# Asignaturas soportadas
 SUPPORTED_SUBJECTS = ["per", "biochem"]
 
 # Áreas disponibles por asignatura (vacío = sin áreas, todo va junto)
@@ -22,7 +21,6 @@ SUBJECT_AREAS = {
 }
 
 
-# Metadata para el frontend
 SUBJECT_METADATA = {
     "per": {
         "id": "per",
@@ -71,10 +69,6 @@ def generate(subject: str, difficulty: str, area: Optional[str] = None) -> Dict[
         difficulty: "easy" | "medium" | "hard"
         area: solo aplicable a asignaturas con áreas (biochem). None = aleatorio
               entre las áreas disponibles.
-
-    Returns:
-        dict con title, options[4], correct_answer_id, explanation,
-        y opcionalmente _area si la asignatura tiene áreas.
     """
     subject = (subject or "").lower().strip()
     if subject == "per":
